@@ -40,6 +40,21 @@ services:
     container_name: php_app
     restart: unless-stopped
 
+    env_file:
+      - .env
+
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASS: ${MYSQL_PASSWORD}
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      APP_ENV: ${APP_ENV:-development}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8000/login/google/callback}
+
     volumes:
       - ./www:/var/www/html
 
@@ -48,6 +63,17 @@ services:
 
     depends_on:
       - mariadb
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: php_tests
+    volumes:
+      - .:/app
+    working_dir: /app
+    profiles:
+      - test
 
 volumes:
   dbdata:

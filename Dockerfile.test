@@ -1,0 +1,19 @@
+FROM php:8.3-cli
+
+# Install PDO SQLite for testing (no MySQL needed)
+RUN docker-php-ext-install pdo pdo_sqlite
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /app
+
+# Copy composer files first for better caching
+COPY composer.json ./
+RUN composer install --no-interaction --prefer-dist
+
+# Copy the rest of the project
+COPY . .
+
+# Default command: run all tests
+CMD ["vendor/bin/phpunit", "--colors=always"]

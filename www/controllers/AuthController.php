@@ -39,9 +39,7 @@ class AuthController extends BaseController
         if (!$user) {
             $limiter->logAttempt($ip);
             $logger->log('login_failed', null, $_POST['email'], "User not found");
-            $limiter->logAttempt($ip);
-            $logger->log('login_failed', null, $_POST['email'], "User not found");
-            $_SESSION['error'] = __('error_user_not_found'); // Specific error as requested
+            $_SESSION['error'] = __('error_user_not_found');
             $this->view('auth/login');
             exit;
         }
@@ -49,9 +47,7 @@ class AuthController extends BaseController
         if (!password_verify($_POST['password'], $user['password'])) {
             $limiter->logAttempt($ip);
             $logger->log('login_failed', null, $_POST['email'], "Invalid password");
-            $limiter->logAttempt($ip);
-            $logger->log('login_failed', null, $_POST['email'], "Invalid password");
-            $_SESSION['error'] = __('error_incorrect_password'); // Specific error
+            $_SESSION['error'] = __('error_incorrect_password');
             $this->view('auth/login');
             exit;
         }
@@ -75,17 +71,21 @@ class AuthController extends BaseController
 
     public function loginGoogle()
     {
-        // TODO: REEMPLAZAR con tus credenciales reales de Google Console
-        // https://console.cloud.google.com/
-        $clientID = 'TU_CLIENT_ID_DE_GOOGLE';
-        $redirectUri = 'http://localhost:8000/login/google/callback'; // Ajusta el puerto/dominio
+        $clientID    = getenv('GOOGLE_CLIENT_ID');
+        $redirectUri = getenv('GOOGLE_REDIRECT_URI') ?: 'http://localhost:8000/login/google/callback';
+
+        if (empty($clientID)) {
+            $_SESSION['error'] = 'Google Login is not configured. Set GOOGLE_CLIENT_ID in .env';
+            $this->view('auth/login');
+            return;
+        }
 
         $params = [
-            'client_id' => $clientID,
-            'redirect_uri' => $redirectUri,
+            'client_id'     => $clientID,
+            'redirect_uri'  => $redirectUri,
             'response_type' => 'code',
-            'scope' => 'email profile',
-            'access_type' => 'online'
+            'scope'         => 'email profile',
+            'access_type'   => 'online'
         ];
 
         $url = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($params);
@@ -99,19 +99,24 @@ class AuthController extends BaseController
             $this->redirect('/login');
         }
 
-        // TODO: REEMPLAZAR con tus credenciales reales
-        $clientID = 'TU_CLIENT_ID_DE_GOOGLE';
-        $clientSecret = 'TU_CLIENT_SECRET_DE_GOOGLE';
-        $redirectUri = 'http://localhost:8000/login/google/callback';
+        // Load credentials from environment
+        $clientID     = getenv('GOOGLE_CLIENT_ID');
+        $clientSecret = getenv('GOOGLE_CLIENT_SECRET');
+        $redirectUri  = getenv('GOOGLE_REDIRECT_URI') ?: 'http://localhost:8000/login/google/callback';
 
-        // 1. Intercambiar code por access token
+        if (empty($clientID) || empty($clientSecret)) {
+            $_SESSION['error'] = 'Google OAuth is not configured. Check your .env file.';
+            $this->redirect('/login');
+        }
+
+        // 1. Exchange code for access token
         $tokenUrl = 'https://oauth2.googleapis.com/token';
         $postData = [
-            'code' => $_GET['code'],
-            'client_id' => $clientID,
+            'code'          => $_GET['code'],
+            'client_id'     => $clientID,
             'client_secret' => $clientSecret,
-            'redirect_uri' => $redirectUri,
-            'grant_type' => 'authorization_code'
+            'redirect_uri'  => $redirectUri,
+            'grant_type'    => 'authorization_code'
         ];
 
         $ch = curl_init();
@@ -124,7 +129,8 @@ class AuthController extends BaseController
 
         $tokenData = json_decode($response, true);
         if (!isset($tokenData['access_token'])) {
-            die('Error obteniendo token de Google');
+            $_SESSION['error'] = 'Failed to obtain Google access token.';
+            $this->redirect('/login');
         }
 
         // 2. Obtener info del usuario
