@@ -1,12 +1,12 @@
 <?php
 
-// 🛡️ Seguridad: Headers HTTP para mitigar ataques comunes
+// Security: HTTP headers to mitigate common attacks
 header("X-Frame-Options: DENY"); // Previene Clickjacking
 header("X-Content-Type-Options: nosniff"); // Previene MIME Sniffing
-header("Content-Security-Policy: default-src 'self' https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:;"); // Básico CSP
+header("Content-Security-Policy: default-src 'self' https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:;"); // Basico CSP
 header("Referrer-Policy: strict-origin-when-cross-origin");
 
-// 🛡️ Seguridad: Configuración de cookies de sesión
+// Security: Session cookie configuration
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',

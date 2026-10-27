@@ -1,56 +1,38 @@
-# SecureApp
+# SecureApp (Web Application Layer)
 
-This project is a secure PHP dashboard application running on Docker. It features a robust authentication system, bilingual support, and a premium UI.
+This directory contains the application source code for the hardened PHP authentication system.
 
-## Features
+## Architectural Features
 
-- **Authentication**: Secure login, registration, and logout (Argon2ID/Bcrypt).
-- **Google Login**: Verified integration with Google OAuth.
-- **Security**:
-    - CSRF Protection.
-    - Rate Limiting (IP-based).
-    - SQL Injection protection (PDO).
-    - Secure Headers.
-- **Bilingual Support**: English and Spanish support via `Lang` helper.
-- **UI/UX**: Premium styling with dark mode elements, responsive tables, and glassmorphism.
+- **Authentication Engine**: Argon2id password hashing, native Google OAuth 2.0 integration, and session lifecycle controls.
+- **Security Defenses**:
+  - Pinned runtime: PHP 8.3.36+ (mitigating CVE-2026-109618 and CVE-2026-109619).
+  - Cross-Site Request Forgery (CSRF) protection via unique session tokens.
+  - IP-based sliding window rate limiter.
+  - Parameterized database operations via PDO.
+  - HTTP security headers (CSP, X-Frame-Options, X-Content-Type-Options).
+- **Internationalization**: Lightweight bilingual support (English and Spanish) via `Lang` helper.
+- **Interface**: Clean glassmorphism layout, responsive data tables, zero mock/dummy metrics.
 
-## Installation
+## Directory Structure
 
-### Prerequisites
-- Docker & Docker Compose
+```text
+www/
+├── assets/          # CSS Styles (Glassmorphism layout)
+├── config/          # Database configuration
+├── controllers/     # Business logic (Auth, User, Home)
+├── core/            # Infrastructure (Router, Logger, RateLimiter, BaseController)
+├── helpers/         # Auxiliary helpers (CSRF, Auth guard, Lang)
+├── lang/            # Translation dictionaries (en.php, es.php)
+├── migrations/      # Database schemas
+├── models/          # Data models (User)
+├── views/           # Presentation layer (Auth, Home, Users)
+└── index.php        # Application entry point & security headers
+```
 
-### Setup
+## Setup & Execution
 
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/GabxSup/Encrypted-Login
-    cd Encrypted-Login
-    ```
-
-2.  **Start the containers**:
-    ```bash
-    docker-compose up -d
-    ```
-
-3.  **Access the application**:
-    - Open `http://localhost:8000` (or your configured port).
-    - Database: `http://localhost:8080` (phpMyAdmin).
-
-4.  **Database Migration**:
-    - Import the initial schema.
-    - **Important**: Run `migratons/001_add_google_id.sql` to enable Google Login support.
-
-## Implementation Details
-
-### Bilingual Support
-The application uses a lightweight `Lang` helper.
-- Language files are located in `www/lang/en.php` and `www/lang/es.php`.
-- The default language is English. To switch to Spanish, set `$_SESSION['lang'] = 'es'`.
-
-### User Management
-- **Create**: Supports normal registration and Google registration.
-- **View**: Styled list and detail views.
-- **Security**: The `User` model dynamically handles the `google_id` column to prevent crashes if the DB schema is not updated.
-
-## Logging
-User activities (login, logout, blocks) are logged to the database and displayed on the dashboard throughout the `Logger` class.
+Run via Docker Compose from the project root:
+```bash
+docker compose up -d
+```

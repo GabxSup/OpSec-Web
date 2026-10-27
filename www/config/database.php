@@ -18,7 +18,7 @@ $options = [
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (PDOException $e) {
-    // 🛡️ Seguridad: No mostrar detalles del error al usuario
+    // Security: Do not expose error details to the user
     error_log('DB Error: ' . $e->getMessage()); // Loguear error interno
     die('Error de conexión con la base de datos. Por favor intente más tarde.');
 }

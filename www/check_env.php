@@ -7,7 +7,7 @@ $newline = $isCli ? "\n" : "<br>";
 function printResult($label, $status, $message = '')
 {
     global $isCli, $newline;
-    $icon = $status ? '✅' : '❌';
+    $icon = $status ? '[OK]' : '[FAIL]';
     echo "{$icon} <strong>{$label}</strong>: {$message}{$newline}";
 }
 
@@ -15,7 +15,7 @@ echo "<h1>Environment Check</h1>" . ($isCli ? "\n" : "");
 
 // 1. PHP Version
 $phpVersion = phpversion();
-printResult("PHP Version", version_compare($phpVersion, '8.0.0', '>='), "Current: $phpVersion (Required: 8.0+)");
+printResult("PHP Version", version_compare($phpVersion, '8.3.36', '>='), "Current: $phpVersion (Required: 8.3.36+ to patch CVE-2026-109618/19)");
 
 // 2. Extensions
 $requiredExtensions = ['pdo', 'pdo_mysql', 'openssl', 'mbstring', 'json'];

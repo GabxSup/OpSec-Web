@@ -57,7 +57,7 @@ class UserController extends BaseController
             exit;
         }
 
-        // 🛡️ DDDOS Protection: Rate Limiting for Registration
+        // Anti-abuse: Rate Limiting for Registration
         $limiter = new RateLimiter();
         $ip = $_SERVER['REMOTE_ADDR'];
 

@@ -14,6 +14,9 @@ return [
     'security_level' => 'Nivel de Seguridad',
     'linked_devices' => 'Dispositivos Vinculados',
     'critical_alerts' => 'Alertas Críticas',
+    'auth_protocol' => 'Protocolo de Autenticación',
+    'session_security' => 'Seguridad de Sesión',
+    'session_strict' => 'Estricto / HttpOnly',
 
     // Logs
     'security_log' => 'Registro de Seguridad',

@@ -46,6 +46,6 @@ try {
     echo "\n====== Database Fixed Successfully! ======\n";
 
 } catch (Exception $e) {
-    echo "\n❌ FATAL ERROR: " . $e->getMessage() . "\n";
+    echo "\n[ERROR] FATAL ERROR: " . $e->getMessage() . "\n";
     exit(1);
 }

@@ -13,7 +13,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
 
-    # ⚠️ SOLO deja esto si necesitas DBeaver desde el host
+    # Note: Only keep this port exposed if host direct DB inspection is required
     ports:
       - "3310:3306"
 

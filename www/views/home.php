@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= __('dashboard') ?></title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -10,7 +11,7 @@
 <body>
 
     <div class="dashboard-layout">
-        <!-- Sidebar -->
+        <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -42,16 +43,6 @@
                         <?= __('users') ?>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" style="cursor: not-allowed; opacity: 0.5;">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
-                        </svg>
-                        <?= __('security_soon') ?>
-                    </a>
-                </li>
             </ul>
 
             <div style="margin-top: auto;">
@@ -71,59 +62,46 @@
             <!-- Top Header -->
             <header class="top-header">
                 <div>
-                    <h2 style="font-size: 1.1rem; font-weight: 500; color: var(--text-muted);"><?= __('welcome_back') ?>
-                    </h2>
-                    <h1
-                        style="font-size: 1.5rem; text-align: left; margin: 0; background: none; -webkit-text-fill-color: initial; color: white;">
+                    <h2 style="font-size: 1.1rem; font-weight: 500; color: var(--text-muted);"><?= __('welcome_back') ?></h2>
+                    <h1 style="font-size: 1.5rem; text-align: left; margin: 0; background: none; -webkit-text-fill-color: initial; color: white;">
                         <?= htmlspecialchars($user['name'] ?? 'User') ?>
                     </h1>
                 </div>
 
                 <div class="user-profile">
-                    <!-- Notifications Dummy -->
-                    <div style="margin-right: 15px; position: relative; cursor: pointer;">
-                        <div
-                            style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #f43f5e; border-radius: 50%;">
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" style="width: 24px;">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                        </svg>
-                    </div>
-
+                    <span style="font-size: 0.85rem; color: var(--text-muted); margin-right: 12px;">
+                        <?= htmlspecialchars($user['email'] ?? '') ?>
+                    </span>
                     <div class="avatar-small">
                         <?= strtoupper(substr($user['name'] ?? 'U', 0, 1)) ?>
                     </div>
                 </div>
             </header>
 
-            <!-- Stats Grid (Visual only as requested "template") -->
+            <!-- Real Session Metrics -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value"><?= count($logs) ?></div>
                     <div class="stat-label"><?= __('logged_activities') ?></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" style="color: #4ade80;">98%</div>
-                    <div class="stat-label"><?= __('security_level') ?></div>
+                    <div class="stat-value" style="color: #60a5fa; font-size: 1.1rem; padding-top: 6px;">
+                        <?= !empty($user['google_id']) ? 'Google OAuth 2.0' : 'Argon2id' ?>
+                    </div>
+                    <div class="stat-label"><?= __('auth_protocol') ?></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" style="color: #60a5fa;">2</div>
-                    <div class="stat-label"><?= __('linked_devices') ?></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" style="color: #f472b6;">0</div>
-                    <div class="stat-label"><?= __('critical_alerts') ?></div>
+                    <div class="stat-value" style="color: #4ade80; font-size: 1.1rem; padding-top: 6px;">
+                        <?= __('session_strict') ?>
+                    </div>
+                    <div class="stat-label"><?= __('session_security') ?></div>
                 </div>
             </div>
 
-            <!-- Security Logs -->
+            <!-- Security Audit Logs -->
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <h3><?= __('security_log') ?></h3>
-                    <a href="#"
-                        style="font-size: 0.85rem; color: var(--primary); text-decoration: none;"><?= __('download_report') ?></a>
                 </div>
 
                 <div style="overflow-x: auto;">
@@ -140,7 +118,8 @@
                             <?php if (empty($logs)): ?>
                                 <tr>
                                     <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">
-                                        <?= __('no_recent_activity') ?></td>
+                                        <?= __('no_recent_activity') ?>
+                                    </td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($logs as $log): ?>
@@ -172,7 +151,6 @@
                     </table>
                 </div>
             </div>
-
         </main>
     </div>
 
