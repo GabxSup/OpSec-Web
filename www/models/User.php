@@ -68,7 +68,15 @@ class User
 
         // Use ARGON2ID if available, else BCRYPT as secure fallback
         $algo = defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT;
-        $hashedPassword = password_hash($data['password'], $algo);
+        $options = [];
+        if ($algo === (defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : 'argon2id')) {
+            $options = [
+                'memory_cost' => 65536,
+                'time_cost' => 4,
+                'threads' => 1
+            ];
+        }
+        $hashedPassword = password_hash($data['password'], $algo, $options);
 
         // Dynamic query matching the data provided
         // This avoids crashing if the 'google_id' column is missing in the DB

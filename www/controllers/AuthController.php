@@ -25,35 +25,43 @@ class AuthController extends BaseController
 
         $limiter = new RateLimiter();
         $logger = new Logger();
-        $ip = $_SERVER['REMOTE_ADDR'];
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
 
         if ($limiter->isBlocked($ip)) {
-            $logger->log('blocked_ip', null, $_POST['email'] ?? 'unknown', "IP Blocked due to excessive attempts");
+            $logger->log('blocked_ip', null, $email, "IP Blocked due to excessive attempts");
             $_SESSION['error'] = __('error_too_many_attempts');
             $this->view('auth/login');
             exit;
         }
 
-        $user = (new User)->findByEmail($_POST['email']);
+        $user = (new User)->findByEmail($email);
+
+        // Constant-time mitigation against user enumeration timing attacks:
+        // Run dummy verification if account doesn't exist so execution time is indistinguishable.
+        $dummyHash = '$argon2id$v=19$m=65536,t=4,p=1$ZHVtbXlzYWx0ZHVtbXlzYWx0$eCvhgM9y3Y885s6lXwJ47Y2u1eK0jO5M3q7Y3R2Q0P4';
 
         if (!$user) {
+            password_verify($password, $dummyHash);
             $limiter->logAttempt($ip);
-            $logger->log('login_failed', null, $_POST['email'], "User not found");
-            $_SESSION['error'] = __('error_user_not_found');
-            $this->view('auth/login');
-            exit;
-        }
-
-        if (!password_verify($_POST['password'], $user['password'])) {
-            $limiter->logAttempt($ip);
-            $logger->log('login_failed', null, $_POST['email'], "Invalid password");
+            $logger->log('login_failed', null, $email, "User not found");
             $_SESSION['error'] = __('error_incorrect_password');
             $this->view('auth/login');
             exit;
         }
 
-        // Login exitoso
+        if (!password_verify($password, $user['password'])) {
+            $limiter->logAttempt($ip);
+            $logger->log('login_failed', null, $email, "Invalid password");
+            $_SESSION['error'] = __('error_incorrect_password');
+            $this->view('auth/login');
+            exit;
+        }
+
+        // Login success - regenerate session ID to prevent Session Fixation (CWE-384)
         $limiter->clearAttempts($ip);
+        session_regenerate_id(true);
         $_SESSION['user'] = $user['id'];
         $logger->log('login_success', $user['id'], $user['email']);
         $this->redirect('/');
@@ -64,10 +72,20 @@ class AuthController extends BaseController
         if (isset($_SESSION['user'])) {
             (new Logger)->log('logout', $_SESSION['user']);
         }
+
+        $_SESSION = [];
+
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000,
+                $params["path"], $params["domain"],
+                $params["secure"], $params["httponly"]
+            );
+        }
+
         session_destroy();
         $this->redirect('/login');
     }
-
 
     public function loginGoogle()
     {
@@ -80,12 +98,17 @@ class AuthController extends BaseController
             return;
         }
 
+        // OAuth CSRF protection: Cryptographic state parameter
+        $state = bin2hex(random_bytes(32));
+        $_SESSION['oauth_state'] = $state;
+
         $params = [
             'client_id'     => $clientID,
             'redirect_uri'  => $redirectUri,
             'response_type' => 'code',
             'scope'         => 'email profile',
-            'access_type'   => 'online'
+            'access_type'   => 'online',
+            'state'         => $state
         ];
 
         $url = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($params);
@@ -98,6 +121,14 @@ class AuthController extends BaseController
         if (empty($_GET['code'])) {
             $this->redirect('/login');
         }
+
+        // Verify OAuth CSRF state parameter
+        if (empty($_GET['state']) || empty($_SESSION['oauth_state']) || !hash_equals($_SESSION['oauth_state'], $_GET['state'])) {
+            unset($_SESSION['oauth_state']);
+            $_SESSION['error'] = 'Invalid OAuth state verification token.';
+            $this->redirect('/login');
+        }
+        unset($_SESSION['oauth_state']);
 
         // Load credentials from environment
         $clientID     = getenv('GOOGLE_CLIENT_ID');
@@ -133,7 +164,7 @@ class AuthController extends BaseController
             $this->redirect('/login');
         }
 
-        // 2. Obtener info del usuario
+        // 2. Retrieve user info
         $userInfoUrl = 'https://www.googleapis.com/oauth2/v2/userinfo';
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $userInfoUrl);
@@ -144,29 +175,28 @@ class AuthController extends BaseController
 
         $email = $userInfo['email'];
         $googleId = $userInfo['id'];
-        $name = $userInfo['name'];
 
-        // 3. Buscar o Crear usuario
+        // 3. Find or Create user
         $userModel = new User();
         $user = $userModel->findByEmail($email);
 
         if ($user) {
-            // Usuario existe, actualizamos google_id si hace falta
             if (empty($user['google_id'])) {
                 $userModel->updateGoogleId($user['id'], $googleId);
             }
+            session_regenerate_id(true);
             $_SESSION['user'] = $user['id'];
         } else {
-            // Crear usuario nuevo automáticamente
-            // Asignamos una contraseña aleatoria fuerte ya que entra por Google
             $randomPass = bin2hex(random_bytes(16));
             $userModel->create([
+                'name' => $userInfo['name'] ?? 'Google User',
                 'email' => $email,
                 'password' => $randomPass,
-                'password_confirm' => $randomPass, // Para pasar validación
+                'password_confirm' => $randomPass,
                 'google_id' => $googleId,
             ]);
             $newUser = $userModel->findByEmail($email);
+            session_regenerate_id(true);
             $_SESSION['user'] = $newUser['id'];
             (new Logger)->log('register_google', $newUser['id'], $email);
         }

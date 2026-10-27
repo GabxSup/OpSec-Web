@@ -45,12 +45,15 @@ In October 2026, two critical remote code execution vulnerabilities were identif
 | :--- | :--- | :--- | :--- |
 | **Engine RCE** | CVE-2026-109618 / 19 | Unauthenticated memory corruption and stale worker state | Pinned to PHP 8.3.36+, hardened memory allocations, disabled banner leakage |
 | **CGI Argument Injection** | CVE-2024-4577 | Command injection through query parameters in CGI wrappers | Direct module execution without CGI pass-through, URL parameter sanitation |
+| **User Enumeration & Timing Attacks** | CWE-208 / CWE-203 | Side-channel timing discrepancies identifying valid accounts | Constant-time execution using dummy Argon2id hash on nonexistent accounts; generic error messages |
+| **OAuth Login CSRF** | RFC 6749 Section 10.12 | Account takeover via forged OAuth callback requests | Cryptographic per-request `state` token verified using constant-time `hash_equals` |
 | **Brute-Force & Credential Stuffing** | CWE-307 | Automated high-frequency password guessing attacks | Stateful IP-based rate limiter (10 failed attempts triggers 15-minute lockout) |
-| **Cross-Site Request Forgery** | CWE-352 | Unauthorized command execution from authenticated sessions | Cryptographically secure per-session CSRF token validated on every POST request |
+| **Cross-Site Request Forgery** | CWE-352 | Unauthorized command execution from authenticated sessions | Per-session cryptographic token verified with constant-time `hash_equals` returning 403 Forbidden |
 | **Weak Password Storage** | CWE-916 | Hash reversal via GPU or rainbow table attacks | Argon2id hashing algorithm (memory-hard, resistant to GPU/ASIC cracking) |
-| **Session Hijacking & Fixation** | CWE-384 | Cookie theft via XSS or network eavesdropping | `HttpOnly`, `Secure`, and `SameSite=Strict` cookie attributes; session regeneration |
+| **Session Hijacking & Fixation** | CWE-384 | Session ID theft or pre-session hijacking | `session_regenerate_id(true)` on login, `session.use_strict_mode = 1`, `HttpOnly`, `Secure`, `SameSite=Strict` |
 | **SQL Injection** | CWE-89 | Unsanitized query concatenation | 100% Parameterized queries via PDO with native prepared statements disabled emulation |
-| **Clickjacking & Sniffing** | CWE-1021 / CWE-79 | UI redress and MIME confusion attacks | HTTP Security headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, strict CSP |
+| **Clickjacking & Sniffing** | CWE-1021 / CWE-79 | UI redress, MIME confusion, and unauthorized device APIs | HTTP Headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Permissions-Policy`, strict CSP |
+
 
 ---
 
@@ -161,20 +164,31 @@ The application front controller (`index.php`) injects the following security he
 - `X-Content-Type-Options: nosniff` (prevents MIME type confusion attacks)
 - `Content-Security-Policy: default-src 'self' https:; ...` (mitigates unauthorized script injection)
 - `Referrer-Policy: strict-origin-when-cross-origin` (prevents sensitive path leakage in referer headers)
+- `Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=()` (restricts browser capabilities)
+- `X-Permitted-Cross-Domain-Policies: none` (restricts Adobe Flash and PDF cross-domain access)
+
+### How are timing attacks and account enumeration mitigated?
+Authentication requests execute in constant time. When an unmapped email address is requested, the system computes a dummy Argon2id hash verification (`$dummyHash`) rather than terminating early, matching the ~150-250ms execution profile of existing accounts. Error messages returned to users are uniform (`error_incorrect_password`), while internal audit logs maintain precise diagnostics for forensic review.
+
+### How does OAuth 2.0 prevent cross-site request forgery?
+The Google OAuth initiator generates a 256-bit cryptographic state token (`bin2hex(random_bytes(32))`) stored in the server session. Upon redirection to `/login/google/callback`, the token is verified using `hash_equals()`. Requests with missing, expired, or mismatched tokens are rejected immediately.
 
 ---
 
 ## Version en Espanol (Spanish Documentation)
 
 ### Resumen del Proyecto
-Sistema de autenticacion y control de acceso de grado de produccion desarrollado en PHP puro (Vanilla 8.3.36+ MVC), sin dependencias externas innecesarias. Disenado y mitigado contra las vulnerabilidades criticas de ejecucion remota de codigo CVE-2026-109618 y CVE-2026-109619 ("PHP2Shell"), asi como contra tecnicas comunes de explotacion web segun los estandares de OWASP.
+Sistema de autenticacion y control de acceso de grado de produccion desarrollado en PHP puro (Vanilla 8.3.36+ MVC), sin dependencias externas innecesarias. Disenado y mitigado contra las vulnerabilidades criticas de ejecucion remota de codigo CVE-2026-109618 y CVE-2026-109619 ("PHP2Shell"), ataques de canal lateral (timing attacks), enumeracion de cuentas y secuestro de sesion.
 
 ### Caracteristicas de Seguridad
 - **Runtime Seguro:** Imagen Docker basada en PHP 8.3.36 con configuracion de memoria segura contra corrupcion por OOM.
-- **Hasheo Criptografico:** Implementacion de Argon2id para almacenamiento seguro de credenciales.
+- **Hasheo Criptografico:** Implementacion de Argon2id (costo de memoria 64 MiB, 4 iteraciones) para almacenamiento seguro de credenciales.
+- **Defensa contra Ataques de Tiempo y Enumeracion:** Verificacion ficticia con Argon2id para cuentas inexistentes (tiempo de respuesta uniforme).
+- **Proteccion contra Fijacion de Sesion:** Regeneracion obligatoria del ID de sesion (`session_regenerate_id(true)`) tras login local y OAuth.
+- **OAuth 2.0 con Estado Criptografico:** Prevencion de CSRF en login social mediante tokens de estado aleatorios y verificacion estricta con `hash_equals`.
 - **Proteccion contra Fuerza Bruta:** Rate limiter por IP con bloqueo temporal de 15 minutos tras 10 intentos fallidos.
-- **Mitigacion CSRF:** Tokens de sesion criptograficos validados en cada peticion POST.
-- **Cookies de Sesion Seguras:** Banderas `HttpOnly`, `Secure` y `SameSite=Strict` activadas globalmente.
+- **Mitigacion CSRF:** Tokens de sesion criptograficos validados con comparacion en tiempo constante (`hash_equals`) que devuelven HTTP 403.
+- **Cookies y Sesiones Estrictas:** Banderas `HttpOnly`, `Secure`, `SameSite=Strict` y `session.use_strict_mode = 1` activadas globalmente.
 - **Dashboard Post-Login Limpio:** Panel optimizado sin datos simulados; muestra unicamente metricas reales de sesion y registro de auditoria completo.
 
 ### Comandos de Inicializacion
