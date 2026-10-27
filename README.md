@@ -3,6 +3,7 @@
 ![PHP Version](https://img.shields.io/badge/PHP-8.3.36%2B%20%7C%208.4.27%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)
 ![Security Standard](https://img.shields.io/badge/Security-Argon2id%20%7C%20Zero%20Trust-blue?style=for-the-badge)
 ![Vulnerability Patch](https://img.shields.io/badge/Patched-CVE--2026--109618%20%2F%20CVE--2026--109619-brightgreen?style=for-the-badge)
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github-sponsors&style=for-the-badge)](https://github.com/sponsors/GabxSup)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
