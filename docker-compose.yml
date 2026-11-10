@@ -1,0 +1,89 @@
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: mariadb_db
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+
+    # Note: Only keep this port exposed if host direct DB inspection is required
+    ports:
+      - "3310:3306"
+
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./www/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+    environment:
+      PMA_HOST: mariadb
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+
+    ports:
+      - "8080:80"
+
+  php:
+    build: .
+    container_name: php_app
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASS: ${MYSQL_PASSWORD}
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      APP_ENV: ${APP_ENV:-development}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8000/login/google/callback}
+
+    volumes:
+      - ./www:/var/www/html
+
+    ports:
+      - "8000:80"
+
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: php_tests
+    volumes:
+      - .:/app
+    working_dir: /app
+    profiles:
+      - test
+
+volumes:
+  dbdata:
