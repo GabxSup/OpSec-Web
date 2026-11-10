@@ -48,7 +48,20 @@
                     <?php else: ?>
                         <span
                             style="font-family: monospace; color: #1f2937; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; border: 1px solid #d1d5db; display: inline-block;">
-                            Not Linked - Check Connection
+                            Not Linked
+                        </span>
+                    <?php endif; ?>
+                </div>
+                <div>
+                    <span
+                        style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px;">Apple
+                        ID</span>
+                    <?php if (!empty($user['apple_id'])): ?>
+                        <span style="font-family: monospace; color: #fff;">Linked</span>
+                    <?php else: ?>
+                        <span
+                            style="font-family: monospace; color: #1f2937; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; border: 1px solid #d1d5db; display: inline-block;">
+                            Not Linked
                         </span>
                     <?php endif; ?>
                 </div>

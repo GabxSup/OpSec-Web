@@ -19,7 +19,7 @@ session_set_cookie_params([
     'domain' => '',
     'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
     'httponly' => true, // Previene acceso via JS (XSS)
-    'samesite' => 'Strict' // Previene CSRF
+    'samesite' => 'Lax' // Permite redirecciones de autenticación OAuth (Google/Apple)
 ]);
 
 session_start();

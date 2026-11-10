@@ -32,6 +32,7 @@ return [
     'email_address' => 'Correo Electrónico',
     'password' => 'Contraseña',
     'sign_in_google' => 'Iniciar con Google',
+    'sign_in_apple' => 'Iniciar con Apple',
     'no_account' => '¿No tienes una cuenta?',
     'create_account' => 'Crear cuenta',
 
@@ -57,6 +58,8 @@ return [
     'action_logout' => 'Cierre de Sesión',
     'action_register_google' => 'Registro Google',
     'action_login_google' => 'Inicio Google',
+    'action_register_apple' => 'Registro Apple',
+    'action_login_apple' => 'Inicio Apple',
 
     // Users View
     'user_list' => 'Lista de Usuarios',

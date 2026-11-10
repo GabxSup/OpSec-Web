@@ -32,6 +32,7 @@ return [
     'email_address' => 'Email Address',
     'password' => 'Password',
     'sign_in_google' => 'Sign in with Google',
+    'sign_in_apple' => 'Sign in with Apple',
     'no_account' => "Don't have an account?",
     'create_account' => 'Create account',
 
@@ -57,6 +58,8 @@ return [
     'action_logout' => 'Logout',
     'action_register_google' => 'Google Register',
     'action_login_google' => 'Google Login',
+    'action_register_apple' => 'Apple Register',
+    'action_login_apple' => 'Apple Login',
 
     // Users View
     'user_list' => 'User List',

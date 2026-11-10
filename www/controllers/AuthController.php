@@ -213,5 +213,131 @@ class AuthController extends BaseController
         (new Logger)->log('login_google', $_SESSION['user'], $email);
         $this->redirect('/');
     }
+
+    public function loginApple()
+    {
+        $clientID    = getenv('APPLE_CLIENT_ID');
+        $redirectUri = getenv('APPLE_REDIRECT_URI') ?: 'http://localhost:8000/login/apple/callback';
+
+        if (empty($clientID)) {
+            $_SESSION['error'] = 'Apple Sign In is not configured. Set APPLE_CLIENT_ID in .env';
+            $this->view('auth/login');
+            return;
+        }
+
+        // OAuth CSRF protection: Cryptographic state parameter
+        $state = bin2hex(random_bytes(32));
+        $nonce = bin2hex(random_bytes(32));
+        $_SESSION['oauth_state_apple'] = $state;
+        $_SESSION['oauth_nonce_apple'] = $nonce;
+
+        $params = [
+            'client_id'     => $clientID,
+            'redirect_uri'  => $redirectUri,
+            'response_type' => 'code id_token',
+            'scope'         => 'name email',
+            'response_mode' => 'form_post',
+            'state'         => $state,
+            'nonce'         => $nonce,
+        ];
+
+        $url = 'https://appleid.apple.com/auth/authorize?' . http_build_query($params);
+        header("Location: $url");
+        exit;
+    }
+
+    public function loginAppleCallback()
+    {
+        $code    = $_POST['code'] ?? $_GET['code'] ?? null;
+        $state   = $_POST['state'] ?? $_GET['state'] ?? null;
+        $idToken = $_POST['id_token'] ?? $_GET['id_token'] ?? null;
+        $userRaw = $_POST['user'] ?? $_GET['user'] ?? null;
+
+        if (empty($code) && empty($idToken)) {
+            $this->redirect('/login');
+        }
+
+        // Verify OAuth CSRF state parameter if session maintained
+        if (!empty($_SESSION['oauth_state_apple'])) {
+            if (empty($state) || !hash_equals($_SESSION['oauth_state_apple'], $state)) {
+                unset($_SESSION['oauth_state_apple']);
+                $_SESSION['error'] = 'Invalid OAuth state verification token.';
+                $this->redirect('/login');
+            }
+            unset($_SESSION['oauth_state_apple']);
+        }
+
+        // Extract and decode claims from the Apple id_token (JWT)
+        $email = null;
+        $appleId = null;
+
+        if (!empty($idToken)) {
+            $jwtParts = explode('.', $idToken);
+            if (count($jwtParts) >= 2) {
+                $payloadJson = base64_decode(strtr($jwtParts[1], '-_', '+/'));
+                $claims = json_decode($payloadJson, true);
+                if (is_array($claims)) {
+                    $appleId = $claims['sub'] ?? null;
+                    $email = $claims['email'] ?? null;
+                }
+            }
+        }
+
+        if (empty($appleId)) {
+            $_SESSION['error'] = 'Failed to verify Apple identity credentials.';
+            $this->redirect('/login');
+        }
+
+        // Parse user name if provided by Apple (only sent on first authorization)
+        $userName = 'Apple User';
+        if (!empty($userRaw)) {
+            $userData = is_string($userRaw) ? json_decode($userRaw, true) : $userRaw;
+            if (is_array($userData) && !empty($userData['name'])) {
+                $first = $userData['name']['firstName'] ?? '';
+                $last  = $userData['name']['lastName'] ?? '';
+                $fullName = trim("$first $last");
+                if (!empty($fullName)) {
+                    $userName = $fullName;
+                }
+            }
+        }
+
+        // Fallback email if Apple hid it and no email claim in id_token
+        if (empty($email)) {
+            $email = $appleId . '@privaterelay.appleid.com';
+        }
+
+        // Find or Create user in database
+        $userModel = new User();
+        $user = $userModel->findByAppleId($appleId);
+
+        if (!$user) {
+            $user = $userModel->findByEmail($email);
+        }
+
+        if ($user) {
+            if (empty($user['apple_id'])) {
+                $userModel->updateAppleId($user['id'], $appleId);
+            }
+            session_regenerate_id(true);
+            $_SESSION['user'] = $user['id'];
+        } else {
+            $randomPass = bin2hex(random_bytes(16));
+            $userModel->create([
+                'name'             => $userName,
+                'email'            => $email,
+                'password'         => $randomPass,
+                'password_confirm' => $randomPass,
+                'apple_id'         => $appleId,
+            ]);
+            $newUser = $userModel->findByAppleId($appleId) ?: $userModel->findByEmail($email);
+            session_regenerate_id(true);
+            $_SESSION['user'] = $newUser['id'];
+            (new Logger)->log('register_apple', $newUser['id'], $email);
+        }
+
+        (new Logger)->log('login_apple', $_SESSION['user'], $email);
+        $this->redirect('/');
+    }
 }
 

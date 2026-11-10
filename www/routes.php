@@ -13,6 +13,9 @@ $router->get('/login', [AuthController::class, 'loginForm']);
 $router->post('/login', [AuthController::class, 'login']);
 $router->get('/login/google', [AuthController::class, 'loginGoogle']);
 $router->get('/login/google/callback', [AuthController::class, 'loginGoogleCallback']);
+$router->get('/login/apple', [AuthController::class, 'loginApple']);
+$router->post('/login/apple/callback', [AuthController::class, 'loginAppleCallback']);
+$router->get('/login/apple/callback', [AuthController::class, 'loginAppleCallback']);
 $router->get('/logout', [AuthController::class, 'logout']);
 
 $router->get('/users', [UserController::class, 'index']);

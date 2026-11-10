@@ -10,6 +10,17 @@ class User
     {
         global $pdo;
         $this->db = $pdo;
+        $this->ensureAppleColumnExists();
+    }
+
+    private function ensureAppleColumnExists(): void
+    {
+        try {
+            $this->db->exec("ALTER TABLE users ADD COLUMN apple_id VARCHAR(255) NULL AFTER google_id");
+            $this->db->exec("CREATE INDEX idx_apple_id ON users(apple_id)");
+        } catch (PDOException $e) {
+            // Ignorar si la columna o índice ya existen
+        }
     }
 
     public function all(int $limit = 10, int $offset = 0)
@@ -79,30 +90,29 @@ class User
         $hashedPassword = password_hash($data['password'], $algo, $options);
 
         // Dynamic query matching the data provided
-        // This avoids crashing if the 'google_id' column is missing in the DB
-        // for normal registrations.
-        if (isset($data['google_id'])) {
-            $stmt = $this->db->prepare("
-                INSERT INTO users (name, email, password, google_id)
-                VALUES (:name, :email, :password, :google_id)
-            ");
-            return $stmt->execute([
-                'name' => trim($data['name']),
-                'email' => trim($data['email']),
-                'password' => $hashedPassword,
-                'google_id' => $data['google_id'],
-            ]);
-        } else {
-            $stmt = $this->db->prepare("
-                INSERT INTO users (name, email, password)
-                VALUES (:name, :email, :password)
-            ");
-            return $stmt->execute([
-                'name' => trim($data['name']),
-                'email' => trim($data['email']),
-                'password' => $hashedPassword,
-            ]);
-        }
+        $googleId = $data['google_id'] ?? null;
+        $appleId = $data['apple_id'] ?? null;
+
+        $stmt = $this->db->prepare("
+            INSERT INTO users (name, email, password, google_id, apple_id)
+            VALUES (:name, :email, :password, :google_id, :apple_id)
+        ");
+        return $stmt->execute([
+            'name' => trim($data['name']),
+            'email' => trim($data['email']),
+            'password' => $hashedPassword,
+            'google_id' => $googleId,
+            'apple_id' => $appleId,
+        ]);
+    }
+
+    public function findByAppleId(string $appleId)
+    {
+        $stmt = $this->db->prepare(
+            "SELECT * FROM users WHERE apple_id = :apple_id LIMIT 1"
+        );
+        $stmt->execute(['apple_id' => $appleId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function updateGoogleId($userId, $googleId)
@@ -110,6 +120,15 @@ class User
         $stmt = $this->db->prepare("UPDATE users SET google_id = :google_id WHERE id = :id");
         return $stmt->execute([
             'google_id' => $googleId,
+            'id' => $userId
+        ]);
+    }
+
+    public function updateAppleId($userId, $appleId)
+    {
+        $stmt = $this->db->prepare("UPDATE users SET apple_id = :apple_id WHERE id = :id");
+        return $stmt->execute([
+            'apple_id' => $appleId,
             'id' => $userId
         ]);
     }
