@@ -63,6 +63,22 @@ final class RouterTest extends DatabaseTestCase
         $this->assertSame('show_42', $output);
     }
 
+    public function testDynamicRouteMatchesLiteralDotsExactly(): void
+    {
+        $this->router->get('/files/{id}.json', [RouterTestController::class, 'show']);
+
+        ob_start();
+        $this->router->dispatch('GET', '/files/42.json');
+        $matchingOutput = ob_get_clean();
+
+        ob_start();
+        $this->router->dispatch('GET', '/files/42xjson');
+        $nonMatchingOutput = ob_get_clean();
+
+        $this->assertSame('show_42', $matchingOutput);
+        $this->assertSame('404 Not Found', $nonMatchingOutput);
+    }
+
     public function testDynamicRouteOnlyMatchesNumericIds(): void
     {
         $this->router->get('/users/{id}', [RouterTestController::class, 'show']);
